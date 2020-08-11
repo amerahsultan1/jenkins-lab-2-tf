@@ -1,48 +1,44 @@
 pipeline {
-
-    agent {
-        docker {
-            image 'bryandollery/terraform-packer-aws-alpine'
-            args "-u root"
-        }
+  agent {
+    docker {
+      image "bryandollery/terraform-packer-aws-alpine"
+      args "-u root --entrypoint=''"
     }
-    stages {
-        stage ('generate manifest') {
-            steps {
-                sh """
-cat <<EOF > ./manifest.txt
-name: ${JOB_NAME}
-time: ${currentBuild.startTimeInMillis}
-build #: ${BUILD_NUMBER}
-commit: ${GIT_COMMIT}
-url: ${GIT_URL}
-EOF
+  }
+  environment {
+    CREDS = credentials('amerah-creds')
+    AWS_ACCESS_KEY_ID = "${CREDS_USR}"
+    AWS_SECRET_ACCESS_KEY = "${CREDS_PSW}"
+    OWNER = "amerah"
+    PROJECT_NAME = 'web-server'
+    AWS_PROFILE="kh-labs"
+    TF_NAMESPACE="amerah"
+  }
+  stages {
+      stage("init") {
+          steps {
+              sh 'make init'
+          }
+      }
+      stage("workspace") {
+          steps {
+              sh """
+terraform workspace select jenkins-lab-2
+if [[ \$? -ne 0 ]]; then
+  terraform workspace new jenkins-lab-2
+fi
 """
-            }
-        }
-        stage ('build') {
-            steps {
-                sh "docker build --tag manifest-holder:latest ."
-                sh "docker tag manifest-holder manifest-holder:${BUILD_NUMBER}"
-                sh "docker tag manifest-holder bryandollery/manifest-holder:latest"
-                sh "docker tag manifest-holder bryandollery/manifest-holder:${BUILD_NUMBER}"
-            }
-        }
-        stage ('test') {
-            steps {
-                sh "docker run --rm manifest-holder"
-            }
-        }
-        stage ('release') {
-            environment {
-                CREDS = credentials('amerah-creds')
-            }
-            steps {
-                sh "whoami"
-                sh "docker login -u ${CREDS_USR} -p ${CREDS_PSW}"
-                sh "docker push bryandollery/manifest-holder:${BUILD_NUMBER}"
-                sh "docker push bryandollery/manifest-holder:latest"
-            }
-        }
-    }
+          }
+      }
+      stage("plan") {
+          steps {
+              sh 'make plan'
+          }
+      }
+      stage("apply") {
+          steps {
+              sh 'make apply'
+          }
+      }
+  }
 }
