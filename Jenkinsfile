@@ -2,7 +2,7 @@ pipeline {
 
     agent {
         docker {
-            image 'bryandollery/alpine-docker'
+            image 'bryandollery/terraform-packer-aws-alpine'
             args "-u root"
         }
     }
