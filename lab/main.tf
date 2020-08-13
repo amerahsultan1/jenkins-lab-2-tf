@@ -187,6 +187,7 @@ provisioner "remote-exec" {
       bastion_private_key = file("./ssh/id_rsa")
       bastion_user        = "ubuntu"
     }
+ }
 }
   
  resource "aws_instance" "api" {
