@@ -18,6 +18,7 @@ pipeline {
       stage("init") {
           steps {
               sh 'make init'
+	      sh 'time terraform plan -out plan.out -lock=false'
           }
       }
       
